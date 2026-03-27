@@ -1,16 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Auto Reloader for RUNI",
-  "version": "1.0.0",
-  "description": "Automatically refreshes RUNI and Moodle pages every 10 minutes to keep sessions alive",
+  "name": "Auto Reloader",
+  "version": "2.0.0",
+  "description": "Automatically refreshes websites at configurable intervals to keep sessions alive",
   "permissions": [
     "tabs",
-    "alarms"
+    "alarms",
+    "storage"
   ],
   "host_permissions": [
-    "https://my.runi.ac.il/*",
-    "https://moodle.runi.ac.il/*",
-    "https://yedion.runi.ac.il/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -29,4 +28,3 @@
     "128": "icon128.png"
   }
 }
-
