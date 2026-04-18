@@ -3,26 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <style>
+    /* ── Theme tokens ──────────────────────────────────────────────────────── */
+    :root {
+      --bg:           #f1f3f4;
+      --card:         #ffffff;
+      --card-shadow:  0 1px 2px rgba(0,0,0,0.07), 0 1px 5px rgba(0,0,0,0.04);
+      --text:         #202124;
+      --text-muted:   #5f6368;
+      --text-faint:   #9aa0a6;
+      --border:       #e0e0e0;
+      --site-bg:      #fafafa;
+      --site-border:  #e8eaed;
+      --input-bg:     #ffffff;
+      --accent:       #1a73e8;
+      --accent-dark:  #1558b0;
+      --error:        #d93025;
+      --badge-sw-bg:  #e8f0fe;
+      --badge-sw-fg:  #1a73e8;
+      --badge-ex-bg:  #fce8e6;
+      --badge-ex-fg:  #c5221f;
+      --badge-dm-bg:  #e6f4ea;
+      --badge-dm-fg:  #137333;
+      --del-hover-bg: #fce8e6;
+      --del-hover-fg: #d93025;
+      --toggle-off:   #cbcbcb;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:           #12121c;
+        --card:         #1e1e2e;
+        --card-shadow:  0 1px 4px rgba(0,0,0,0.4);
+        --text:         #e2e2f0;
+        --text-muted:   #9090b0;
+        --text-faint:   #606080;
+        --border:       #2e2e48;
+        --site-bg:      #191928;
+        --site-border:  #2a2a42;
+        --input-bg:     #1a1a2c;
+        --accent:       #5a9cef;
+        --accent-dark:  #4080d0;
+        --error:        #f28b82;
+        --badge-sw-bg:  #1a2a48;
+        --badge-sw-fg:  #7ab3f8;
+        --badge-ex-bg:  #3a1a1a;
+        --badge-ex-fg:  #f28b82;
+        --badge-dm-bg:  #142414;
+        --badge-dm-fg:  #57bb6f;
+        --del-hover-bg: #3a1a1a;
+        --del-hover-fg: #f28b82;
+        --toggle-off:   #404060;
+      }
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 420px;
-      max-height: 620px;
+      width: 430px;
+      max-height: 640px;
       overflow-y: auto;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f1f3f4;
-      color: #202124;
+      background: var(--bg);
+      color: var(--text);
       font-size: 13px;
+      transition: background 0.2s, color 0.2s;
     }
 
-    /* ── Scrollbar ───────────────────────────────────── */
     body::-webkit-scrollbar { width: 5px; }
     body::-webkit-scrollbar-track { background: transparent; }
-    body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-    /* ── Header ──────────────────────────────────────── */
+    /* ── Header ────────────────────────────────────────────────────────────── */
     .header {
-      background: linear-gradient(135deg, #1a73e8 0%, #0d5bba 100%);
+      background: linear-gradient(135deg, #1a73e8 0%, #0d4fba 100%);
       color: white;
       padding: 14px 16px;
       display: flex;
@@ -32,10 +86,10 @@
       top: 0;
       z-index: 10;
     }
-    .header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
-    .header p  { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+    .header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.3px; }
+    .header p  { font-size: 11px; opacity: 0.75; margin-top: 3px; }
 
-    /* ── Toggle switch ───────────────────────────────── */
+    /* ── Toggle switch ─────────────────────────────────────────────────────── */
     .toggle {
       display: inline-flex;
       align-items: center;
@@ -63,24 +117,25 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.25);
       transition: transform 0.2s;
     }
-    /* Master switch — on white background when checked */
-    .toggle input:checked ~ .track { background: rgba(255,255,255,0.85); }
-    .toggle input:checked ~ .track::after { transform: translateX(16px); background: #1a73e8; }
+    /* Master switch (on dark blue header) */
+    .toggle input:checked ~ .track              { background: rgba(255,255,255,0.88); }
+    .toggle input:checked ~ .track::after       { transform: translateX(16px); background: #1a73e8; }
 
-    /* Site/hours toggle — on card (white) background */
-    .toggle.on-white .track              { background: #cbcbcb; }
-    .toggle.on-white input:checked ~ .track { background: #1a73e8; }
-    .toggle.on-white input:checked ~ .track::after { background: white; }
+    /* Inline toggle (on card background) */
+    .toggle.on-card .track                      { background: var(--toggle-off); }
+    .toggle.on-card input:checked ~ .track      { background: var(--accent); }
+    .toggle.on-card input:checked ~ .track::after { background: white; }
 
     .toggle-label { font-size: 12px; font-weight: 500; }
 
-    /* ── Card ────────────────────────────────────────── */
+    /* ── Card ──────────────────────────────────────────────────────────────── */
     .card {
-      background: white;
+      background: var(--card);
       margin: 10px 10px 0;
       border-radius: 10px;
       padding: 14px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.07), 0 1px 5px rgba(0,0,0,0.04);
+      box-shadow: var(--card-shadow);
+      transition: background 0.2s;
     }
     .card:last-child { margin-bottom: 10px; }
 
@@ -93,49 +148,43 @@
     .card-title {
       font-size: 11px;
       font-weight: 600;
-      color: #5f6368;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.6px;
     }
-    .card-header .card-title { margin-bottom: 0; }
 
-    /* ── Form fields ─────────────────────────────────── */
+    /* ── Form fields ───────────────────────────────────────────────────────── */
     .field { display: flex; flex-direction: column; gap: 3px; }
-    .field label { font-size: 11px; color: #5f6368; font-weight: 500; }
+    .field label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
     .field.grow { flex: 1; }
 
     input[type="url"],
     input[type="number"],
     input[type="time"],
     select {
-      border: 1.5px solid #e0e0e0;
+      border: 1.5px solid var(--border);
       border-radius: 6px;
       padding: 7px 9px;
       font-size: 13px;
       font-family: inherit;
       outline: none;
-      background: white;
-      color: #202124;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      background: var(--input-bg);
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
     }
     input:focus, select:focus {
-      border-color: #1a73e8;
-      box-shadow: 0 0 0 3px rgba(26,115,232,0.12);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
     }
     input[type="number"] { width: 72px; }
     input[type="time"]   { width: 95px; }
-
     select { cursor: pointer; }
 
-    .form-row {
-      display: flex;
-      gap: 8px;
-      align-items: flex-end;
-    }
+    .form-row { display: flex; gap: 8px; align-items: flex-end; }
     .form-row + .form-row { margin-top: 8px; }
 
     .btn-add {
-      background: #1a73e8;
+      background: var(--accent);
       color: white;
       border: none;
       border-radius: 6px;
@@ -148,40 +197,49 @@
       transition: background 0.15s, box-shadow 0.15s;
       flex-shrink: 0;
     }
-    .btn-add:hover { background: #1558b0; box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
+    .btn-add:hover { background: var(--accent-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
 
-    .error {
-      font-size: 11px;
-      color: #d93025;
-      min-height: 15px;
-      margin-top: 6px;
-    }
+    .error { font-size: 11px; color: var(--error); min-height: 15px; margin-top: 6px; }
 
-    /* ── Active Hours ─────────────────────────────────── */
-    .hours-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-      margin-top: 11px;
-    }
+    /* ── Active Hours ──────────────────────────────────────────────────────── */
+    .hours-row { display: flex; align-items: flex-end; gap: 10px; margin-top: 11px; }
     .hours-row.hidden { display: none; }
-    .hours-sep { font-size: 13px; color: #9aa0a6; padding-bottom: 7px; }
-    .hours-hint { font-size: 11px; color: #9aa0a6; padding-bottom: 7px; flex: 1; }
+    .hours-sep  { font-size: 13px; color: var(--text-faint); padding-bottom: 7px; }
+    .hours-hint { font-size: 11px; color: var(--text-faint); padding-bottom: 7px; flex: 1; }
 
-    /* ── Sites list ──────────────────────────────────── */
+    /* ── Ghost sprite ──────────────────────────────────────────────────────── */
+    /*
+      ghost.png is a horizontal sprite:  [ACTIVE ghost | PAUSED ghost]
+      We clip to the left half (active) or right half (paused) using
+      background-position with background-size: 200% auto.
+    */
+    .ghost-status {
+      width: 34px;
+      height: 46px;
+      background-image: url('ghost.png');
+      background-size: 200% auto;
+      background-repeat: no-repeat;
+      background-position: 0% center; /* active by default */
+      flex-shrink: 0;
+      image-rendering: pixelated; /* keeps the pixel-art crisp */
+    }
+    .ghost-status.is-paused { background-position: 100% center; }
+
+    /* ── Sites list ────────────────────────────────────────────────────────── */
     .sites-list { display: flex; flex-direction: column; gap: 6px; }
 
     .site-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       padding: 9px 10px;
-      border: 1.5px solid #e8eaed;
+      border: 1.5px solid var(--site-border);
       border-radius: 8px;
-      background: #fafafa;
-      transition: border-color 0.15s, opacity 0.2s;
+      background: var(--site-bg);
+      transition: border-color 0.15s, opacity 0.2s, background 0.2s;
     }
-    .site-item.disabled { opacity: 0.45; }
+    .site-item.is-globally-paused,
+    .site-item.is-site-paused { opacity: 0.5; }
 
     .site-info { flex: 1; min-width: 0; }
     .site-url {
@@ -190,9 +248,9 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #202124;
+      color: var(--text);
     }
-    .site-meta { font-size: 10px; color: #80868b; margin-top: 2px; }
+    .site-meta { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
 
     .match-badge {
       font-size: 9px;
@@ -202,11 +260,11 @@
       border-radius: 4px;
       flex-shrink: 0;
       text-transform: uppercase;
-      background: #e8f0fe;
-      color: #1a73e8;
+      background: var(--badge-sw-bg);
+      color: var(--badge-sw-fg);
     }
-    .match-badge.exact  { background: #fce8e6; color: #c5221f; }
-    .match-badge.domain { background: #e6f4ea; color: #137333; }
+    .match-badge.exact  { background: var(--badge-ex-bg); color: var(--badge-ex-fg); }
+    .match-badge.domain { background: var(--badge-dm-bg); color: var(--badge-dm-fg); }
 
     .delete-btn {
       background: none;
@@ -214,25 +272,25 @@
       cursor: pointer;
       padding: 4px 5px;
       border-radius: 4px;
-      color: #bdc1c6;
+      color: var(--text-faint);
       font-size: 14px;
       line-height: 1;
       transition: color 0.15s, background 0.15s;
       flex-shrink: 0;
     }
-    .delete-btn:hover { color: #d93025; background: #fce8e6; }
+    .delete-btn:hover { color: var(--del-hover-fg); background: var(--del-hover-bg); }
 
     .empty {
       text-align: center;
-      color: #9aa0a6;
+      color: var(--text-faint);
       font-size: 12px;
       padding: 20px 0;
     }
 
-    /* ── Footer notice ───────────────────────────────── */
+    /* ── Footer ────────────────────────────────────────────────────────────── */
     .footer {
       font-size: 10px;
-      color: #9aa0a6;
+      color: var(--text-faint);
       text-align: center;
       padding: 6px 10px 10px;
     }
@@ -243,8 +301,8 @@
   <!-- Header + Master Switch -->
   <div class="header">
     <div>
-      <h1>Session Keeper</h1>
-      <p>Silent background session pings</p>
+      <h1>SessionAlive</h1>
+      <p>Ghost pings keep your portals alive</p>
     </div>
     <label class="toggle" title="Pause / resume all pings">
       <input type="checkbox" id="masterSwitch" checked>
@@ -255,7 +313,9 @@
 
   <!-- Add Website -->
   <div class="card">
-    <div class="card-title" style="margin-bottom:12px;">Add Website</div>
+    <div class="card-header">
+      <span class="card-title">Add Website</span>
+    </div>
 
     <div class="form-row">
       <div class="field grow">
@@ -287,10 +347,10 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">Active Hours</span>
-      <label class="toggle on-white">
+      <label class="toggle on-card">
         <input type="checkbox" id="hoursEnabled">
         <span class="track"></span>
-        <span class="toggle-label" style="font-size:11px; color:#5f6368;">Enable</span>
+        <span class="toggle-label" style="font-size:11px; color:var(--text-muted);">Enable</span>
       </label>
     </div>
     <div class="hours-row hidden" id="hoursRow">
@@ -309,7 +369,9 @@
 
   <!-- Configured Sites -->
   <div class="card">
-    <div class="card-title" style="margin-bottom:12px;">Configured Sites</div>
+    <div class="card-header">
+      <span class="card-title">Configured Sites</span>
+    </div>
     <div class="sites-list" id="sitesList">
       <div class="empty">No websites configured yet.</div>
     </div>

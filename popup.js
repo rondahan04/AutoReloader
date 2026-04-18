@@ -2,9 +2,9 @@
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let allSites     = [];
+let allSites      = [];
 let globalEnabled = true;
-let activeHours  = { enabled: false, start: '08:00', end: '22:00' };
+let activeHours   = { enabled: false, start: '08:00', end: '22:00' };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -21,22 +21,21 @@ async function loadStorage() {
 
 async function persist() {
   await chrome.storage.local.set({ sites: allSites, globalEnabled, activeHours });
-  // Notify background to rebuild alarms (no-op for config-only changes, harmless)
   chrome.runtime.sendMessage({ type: 'SITES_UPDATED' }).catch(() => {});
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const MATCH_LABELS = { startsWith: 'Starts With', domain: 'Domain', exact: 'Exact' };
 const BADGE_CLASS  = { startsWith: 'match-badge', domain: 'match-badge domain', exact: 'match-badge exact' };
 
 function esc(str) {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ─── Render sites ─────────────────────────────────────────────────────────────
 
 function renderSites() {
   const list = document.getElementById('sitesList');
@@ -48,19 +47,28 @@ function renderSites() {
   }
 
   for (const site of allSites) {
+    // A site is "effectively active" only when both the master switch AND
+    // the per-site toggle are on.
+    const effectivelyActive = globalEnabled && site.enabled;
+
     const item = document.createElement('div');
-    item.className = 'site-item' + (site.enabled ? '' : ' disabled');
+    item.className = [
+      'site-item',
+      !globalEnabled  ? 'is-globally-paused' : '',
+      !site.enabled   ? 'is-site-paused'     : '',
+    ].filter(Boolean).join(' ');
 
     const badge = BADGE_CLASS[site.matchType] ?? 'match-badge';
     const label = MATCH_LABELS[site.matchType] ?? 'Starts With';
 
     item.innerHTML = `
+      <div class="ghost-status ${effectivelyActive ? '' : 'is-paused'}"></div>
       <div class="site-info">
         <div class="site-url" title="${esc(site.url)}">${esc(site.url)}</div>
-        <div class="site-meta">Every ${site.intervalMinutes} min · ${label}</div>
+        <div class="site-meta">Every ${site.intervalMinutes} min</div>
       </div>
       <span class="${badge}">${label}</span>
-      <label class="toggle on-white" title="${site.enabled ? 'Pause' : 'Resume'} this site">
+      <label class="toggle on-card" title="${site.enabled ? 'Pause this site' : 'Resume this site'}">
         <input type="checkbox" class="site-toggle-cb" data-id="${site.id}" ${site.enabled ? 'checked' : ''}>
         <span class="track"></span>
       </label>
@@ -99,6 +107,7 @@ function initMasterSwitch() {
   sw.addEventListener('change', async () => {
     globalEnabled = sw.checked;
     await persist();
+    renderSites(); // ghost states depend on globalEnabled
   });
 }
 
@@ -141,7 +150,6 @@ function initAddForm() {
 
   const doAdd = async () => {
     errorMsg.textContent = '';
-
     let raw = urlInput.value.trim();
     if (!raw) { errorMsg.textContent = 'Please enter a URL.'; return; }
     if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
@@ -149,13 +157,11 @@ function initAddForm() {
       errorMsg.textContent = 'Invalid URL — include the full address.';
       return;
     }
-
     const interval = parseInt(intervalIn.value, 10);
     if (!interval || interval < 1) {
       errorMsg.textContent = 'Interval must be at least 1 minute.';
       return;
     }
-
     if (allSites.some(s => s.url === raw)) {
       errorMsg.textContent = 'This URL is already in the list.';
       return;
@@ -171,8 +177,6 @@ function initAddForm() {
 
     await persist();
     renderSites();
-
-    // Reset form
     urlInput.value   = '';
     intervalIn.value = '10';
     matchSel.value   = 'startsWith';

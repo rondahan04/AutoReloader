@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Session Keeper",
+  "name": "SessionAlive",
   "version": "3.0.0",
-  "description": "Silently keeps web sessions alive with background pings, smart scheduling, and SSO auto-recovery.",
+  "description": "Ghost pings keep your portals alive — silent, smart, and always connected.",
   "permissions": [
     "alarms",
     "storage",
