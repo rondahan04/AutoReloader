@@ -3,116 +3,219 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 400px;
+      width: 420px;
+      max-height: 620px;
+      overflow-y: auto;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-    }
-
-    .header {
-      background: #1a73e8;
-      color: white;
-      padding: 16px 20px;
-    }
-    .header h1 { font-size: 17px; font-weight: 600; }
-    .header p  { font-size: 12px; opacity: 0.85; margin-top: 3px; }
-
-    .section {
-      background: white;
-      margin: 12px;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    .section h2 {
+      background: #f1f3f4;
+      color: #202124;
       font-size: 13px;
-      font-weight: 600;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────── */
+    body::-webkit-scrollbar { width: 5px; }
+    body::-webkit-scrollbar-track { background: transparent; }
+    body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+    /* ── Header ──────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d5bba 100%);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+    .header p  { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+
+    /* ── Toggle switch ───────────────────────────────── */
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .track {
+      width: 38px; height: 22px;
+      border-radius: 11px;
+      background: rgba(255,255,255,0.28);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .track::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      top: 3px; left: 3px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: transform 0.2s;
+    }
+    /* Master switch — on white background when checked */
+    .toggle input:checked ~ .track { background: rgba(255,255,255,0.85); }
+    .toggle input:checked ~ .track::after { transform: translateX(16px); background: #1a73e8; }
+
+    /* Site/hours toggle — on card (white) background */
+    .toggle.on-white .track              { background: #cbcbcb; }
+    .toggle.on-white input:checked ~ .track { background: #1a73e8; }
+    .toggle.on-white input:checked ~ .track::after { background: white; }
+
+    .toggle-label { font-size: 12px; font-weight: 500; }
+
+    /* ── Card ────────────────────────────────────────── */
+    .card {
+      background: white;
+      margin: 10px 10px 0;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.07), 0 1px 5px rgba(0,0,0,0.04);
+    }
+    .card:last-child { margin-bottom: 10px; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 12px;
     }
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .card-header .card-title { margin-bottom: 0; }
+
+    /* ── Form fields ─────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field label { font-size: 11px; color: #5f6368; font-weight: 500; }
+    .field.grow { flex: 1; }
+
+    input[type="url"],
+    input[type="number"],
+    input[type="time"],
+    select {
+      border: 1.5px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      background: white;
+      color: #202124;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 3px rgba(26,115,232,0.12);
+    }
+    input[type="number"] { width: 72px; }
+    input[type="time"]   { width: 95px; }
+
+    select { cursor: pointer; }
 
     .form-row {
       display: flex;
       gap: 8px;
       align-items: flex-end;
-      margin-bottom: 8px;
     }
-    .field { display: flex; flex-direction: column; gap: 4px; }
-    .field label { font-size: 11px; color: #777; font-weight: 500; }
-    .field.grow { flex: 1; }
+    .form-row + .form-row { margin-top: 8px; }
 
-    input[type="url"], input[type="number"] {
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    input[type="url"]:focus, input[type="number"]:focus {
-      border-color: #1a73e8;
-    }
-    input[type="number"] { width: 80px; }
-
-    button#addBtn {
+    .btn-add {
       background: #1a73e8;
       color: white;
       border: none;
       border-radius: 6px;
-      padding: 7px 16px;
+      padding: 0 16px;
+      height: 34px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
-      transition: background 0.15s;
+      transition: background 0.15s, box-shadow 0.15s;
+      flex-shrink: 0;
     }
-    button#addBtn:hover { background: #1557b0; }
+    .btn-add:hover { background: #1558b0; box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
 
     .error {
-      font-size: 12px;
+      font-size: 11px;
       color: #d93025;
-      min-height: 16px;
+      min-height: 15px;
+      margin-top: 6px;
     }
 
-    .sites-list { display: flex; flex-direction: column; gap: 8px; }
+    /* ── Active Hours ─────────────────────────────────── */
+    .hours-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      margin-top: 11px;
+    }
+    .hours-row.hidden { display: none; }
+    .hours-sep { font-size: 13px; color: #9aa0a6; padding-bottom: 7px; }
+    .hours-hint { font-size: 11px; color: #9aa0a6; padding-bottom: 7px; flex: 1; }
+
+    /* ── Sites list ──────────────────────────────────── */
+    .sites-list { display: flex; flex-direction: column; gap: 6px; }
 
     .site-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid #e8eaed;
-      border-radius: 6px;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1.5px solid #e8eaed;
+      border-radius: 8px;
       background: #fafafa;
+      transition: border-color 0.15s, opacity 0.2s;
     }
+    .site-item.disabled { opacity: 0.45; }
+
     .site-info { flex: 1; min-width: 0; }
     .site-url {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #222;
+      color: #202124;
     }
-    .site-meta {
-      font-size: 11px;
-      color: #888;
-      margin-top: 2px;
+    .site-meta { font-size: 10px; color: #80868b; margin-top: 2px; }
+
+    .match-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      background: #e8f0fe;
+      color: #1a73e8;
     }
+    .match-badge.exact  { background: #fce8e6; color: #c5221f; }
+    .match-badge.domain { background: #e6f4ea; color: #137333; }
 
     .delete-btn {
       background: none;
       border: none;
       cursor: pointer;
-      padding: 4px;
+      padding: 4px 5px;
       border-radius: 4px;
-      color: #aaa;
-      font-size: 16px;
+      color: #bdc1c6;
+      font-size: 14px;
       line-height: 1;
       transition: color 0.15s, background 0.15s;
       flex-shrink: 0;
@@ -121,54 +224,98 @@
 
     .empty {
       text-align: center;
-      color: #aaa;
-      font-size: 13px;
+      color: #9aa0a6;
+      font-size: 12px;
       padding: 20px 0;
     }
 
-    .notice {
-      font-size: 11px;
-      color: #888;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      margin-top: 10px;
+    /* ── Footer notice ───────────────────────────────── */
+    .footer {
+      font-size: 10px;
+      color: #9aa0a6;
+      text-align: center;
+      padding: 6px 10px 10px;
     }
-    .notice span { color: #1a73e8; font-size: 13px; }
   </style>
 </head>
 <body>
 
+  <!-- Header + Master Switch -->
   <div class="header">
-    <h1>Auto Reloader</h1>
-    <p>Refreshes background tabs at configurable intervals</p>
+    <div>
+      <h1>Session Keeper</h1>
+      <p>Silent background session pings</p>
+    </div>
+    <label class="toggle" title="Pause / resume all pings">
+      <input type="checkbox" id="masterSwitch" checked>
+      <span class="track"></span>
+      <span class="toggle-label">Active</span>
+    </label>
   </div>
 
-  <div class="section">
-    <h2>Add Website</h2>
+  <!-- Add Website -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">Add Website</div>
+
     <div class="form-row">
       <div class="field grow">
         <label>URL</label>
-        <input type="url" id="urlInput" placeholder="https://example.com/" />
+        <input type="url" id="urlInput" placeholder="https://example.com/" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field grow">
+        <label>Match Type</label>
+        <select id="matchType">
+          <option value="startsWith">Starts With</option>
+          <option value="domain">Domain / Wildcard</option>
+          <option value="exact">Exact Match</option>
+        </select>
       </div>
       <div class="field">
-        <label>Every (min)</label>
+        <label>Interval (min)</label>
         <input type="number" id="intervalInput" value="10" min="1" max="1440" />
       </div>
-      <button id="addBtn">Add</button>
+      <button class="btn-add" id="addBtn">Add</button>
     </div>
+
     <div class="error" id="errorMsg"></div>
-    <div class="notice">
-      <span>&#9432;</span> Active (focused) tabs are never reloaded.
+  </div>
+
+  <!-- Active Hours -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Active Hours</span>
+      <label class="toggle on-white">
+        <input type="checkbox" id="hoursEnabled">
+        <span class="track"></span>
+        <span class="toggle-label" style="font-size:11px; color:#5f6368;">Enable</span>
+      </label>
+    </div>
+    <div class="hours-row hidden" id="hoursRow">
+      <div class="field">
+        <label>From</label>
+        <input type="time" id="hoursStart" value="08:00" />
+      </div>
+      <div class="hours-sep">—</div>
+      <div class="field">
+        <label>To</label>
+        <input type="time" id="hoursEnd" value="22:00" />
+      </div>
+      <span class="hours-hint">Pings skipped outside this window.</span>
     </div>
   </div>
 
-  <div class="section">
-    <h2>Configured Websites</h2>
+  <!-- Configured Sites -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;">Configured Sites</div>
     <div class="sites-list" id="sitesList">
       <div class="empty">No websites configured yet.</div>
     </div>
   </div>
+
+  <div class="footer">Right-click any page → "Keep this tab alive" to add instantly.</div>
 
   <script src="popup.js"></script>
 </body>

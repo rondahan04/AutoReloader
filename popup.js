@@ -1,114 +1,194 @@
-async function getSites() {
-  const { sites = [] } = await chrome.storage.local.get('sites');
-  return sites;
-}
+'use strict';
 
-async function saveSites(sites) {
-  await chrome.storage.local.set({ sites });
-  chrome.runtime.sendMessage({ type: 'SITES_UPDATED' }).catch(() => {
-    // Background may not be awake yet; setupAlarms runs on startup anyway
+// ─── State ────────────────────────────────────────────────────────────────────
+
+let allSites     = [];
+let globalEnabled = true;
+let activeHours  = { enabled: false, start: '08:00', end: '22:00' };
+
+// ─── Storage helpers ──────────────────────────────────────────────────────────
+
+async function loadStorage() {
+  const data = await chrome.storage.local.get({
+    sites:         [],
+    globalEnabled: true,
+    activeHours:   { enabled: false, start: '08:00', end: '22:00' },
   });
+  allSites      = data.sites;
+  globalEnabled = data.globalEnabled;
+  activeHours   = data.activeHours;
 }
 
-function generateId() {
-  return 'site_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+async function persist() {
+  await chrome.storage.local.set({ sites: allSites, globalEnabled, activeHours });
+  // Notify background to rebuild alarms (no-op for config-only changes, harmless)
+  chrome.runtime.sendMessage({ type: 'SITES_UPDATED' }).catch(() => {});
 }
 
-function renderSites(sites) {
+// ─── Render ───────────────────────────────────────────────────────────────────
+
+const MATCH_LABELS = { startsWith: 'Starts With', domain: 'Domain', exact: 'Exact' };
+const BADGE_CLASS  = { startsWith: 'match-badge', domain: 'match-badge domain', exact: 'match-badge exact' };
+
+function esc(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderSites() {
   const list = document.getElementById('sitesList');
   list.innerHTML = '';
 
-  if (sites.length === 0) {
+  if (allSites.length === 0) {
     list.innerHTML = '<div class="empty">No websites configured yet.</div>';
     return;
   }
 
-  for (const site of sites) {
+  for (const site of allSites) {
     const item = document.createElement('div');
-    item.className = 'site-item';
+    item.className = 'site-item' + (site.enabled ? '' : ' disabled');
+
+    const badge = BADGE_CLASS[site.matchType] ?? 'match-badge';
+    const label = MATCH_LABELS[site.matchType] ?? 'Starts With';
 
     item.innerHTML = `
       <div class="site-info">
-        <div class="site-url" title="${site.url}">${site.url}</div>
-        <div class="site-meta">Refresh every ${site.intervalMinutes} minute${site.intervalMinutes !== 1 ? 's' : ''}</div>
+        <div class="site-url" title="${esc(site.url)}">${esc(site.url)}</div>
+        <div class="site-meta">Every ${site.intervalMinutes} min · ${label}</div>
       </div>
+      <span class="${badge}">${label}</span>
+      <label class="toggle on-white" title="${site.enabled ? 'Pause' : 'Resume'} this site">
+        <input type="checkbox" class="site-toggle-cb" data-id="${site.id}" ${site.enabled ? 'checked' : ''}>
+        <span class="track"></span>
+      </label>
       <button class="delete-btn" data-id="${site.id}" title="Remove">&#128465;</button>
     `;
 
     list.appendChild(item);
   }
 
-  // Attach delete handlers
+  // Per-site toggle
+  list.querySelectorAll('.site-toggle-cb').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const site = allSites.find(s => s.id === cb.dataset.id);
+      if (!site) return;
+      site.enabled = cb.checked;
+      await persist();
+      renderSites();
+    });
+  });
+
+  // Delete
   list.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
-      const current = await getSites();
-      const updated = current.filter(s => s.id !== id);
-      await saveSites(updated);
-      renderSites(updated);
+      allSites = allSites.filter(s => s.id !== btn.dataset.id);
+      await persist();
+      renderSites();
     });
   });
 }
 
-document.getElementById('addBtn').addEventListener('click', async () => {
-  const urlInput = document.getElementById('urlInput');
-  const intervalInput = document.getElementById('intervalInput');
-  const errorMsg = document.getElementById('errorMsg');
+// ─── Master switch ────────────────────────────────────────────────────────────
 
-  errorMsg.textContent = '';
+function initMasterSwitch() {
+  const sw = document.getElementById('masterSwitch');
+  sw.checked = globalEnabled;
+  sw.addEventListener('change', async () => {
+    globalEnabled = sw.checked;
+    await persist();
+  });
+}
 
-  const rawUrl = urlInput.value.trim();
-  const intervalMinutes = parseInt(intervalInput.value, 10);
+// ─── Active hours ─────────────────────────────────────────────────────────────
 
-  // Validate URL
-  if (!rawUrl) {
-    errorMsg.textContent = 'Please enter a URL.';
-    return;
-  }
-  let normalizedUrl = rawUrl;
-  if (!/^https?:\/\//i.test(normalizedUrl)) {
-    normalizedUrl = 'https://' + normalizedUrl;
-  }
-  try {
-    new URL(normalizedUrl);
-  } catch {
-    errorMsg.textContent = 'Invalid URL. Include the full address (e.g. https://example.com/).';
-    return;
-  }
+function initActiveHours() {
+  const enabledCb = document.getElementById('hoursEnabled');
+  const hoursRow  = document.getElementById('hoursRow');
+  const startIn   = document.getElementById('hoursStart');
+  const endIn     = document.getElementById('hoursEnd');
 
-  // Validate interval
-  if (!intervalMinutes || intervalMinutes < 1) {
-    errorMsg.textContent = 'Interval must be at least 1 minute.';
-    return;
-  }
+  enabledCb.checked = activeHours.enabled;
+  startIn.value     = activeHours.start;
+  endIn.value       = activeHours.end;
+  hoursRow.classList.toggle('hidden', !activeHours.enabled);
 
-  const sites = await getSites();
+  enabledCb.addEventListener('change', async () => {
+    activeHours.enabled = enabledCb.checked;
+    hoursRow.classList.toggle('hidden', !activeHours.enabled);
+    await persist();
+  });
 
-  // Check for duplicate
-  if (sites.some(s => s.url === normalizedUrl)) {
-    errorMsg.textContent = 'This URL is already in the list.';
-    return;
-  }
+  const onTimeChange = async () => {
+    activeHours.start = startIn.value;
+    activeHours.end   = endIn.value;
+    await persist();
+  };
+  startIn.addEventListener('change', onTimeChange);
+  endIn.addEventListener('change', onTimeChange);
+}
 
-  const newSite = {
-    id: generateId(),
-    url: normalizedUrl,
-    intervalMinutes
+// ─── Add form ─────────────────────────────────────────────────────────────────
+
+function initAddForm() {
+  const urlInput   = document.getElementById('urlInput');
+  const matchSel   = document.getElementById('matchType');
+  const intervalIn = document.getElementById('intervalInput');
+  const addBtn     = document.getElementById('addBtn');
+  const errorMsg   = document.getElementById('errorMsg');
+
+  const doAdd = async () => {
+    errorMsg.textContent = '';
+
+    let raw = urlInput.value.trim();
+    if (!raw) { errorMsg.textContent = 'Please enter a URL.'; return; }
+    if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+    try { new URL(raw); } catch {
+      errorMsg.textContent = 'Invalid URL — include the full address.';
+      return;
+    }
+
+    const interval = parseInt(intervalIn.value, 10);
+    if (!interval || interval < 1) {
+      errorMsg.textContent = 'Interval must be at least 1 minute.';
+      return;
+    }
+
+    if (allSites.some(s => s.url === raw)) {
+      errorMsg.textContent = 'This URL is already in the list.';
+      return;
+    }
+
+    allSites.push({
+      id:              'site_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+      url:             raw,
+      intervalMinutes: interval,
+      matchType:       matchSel.value,
+      enabled:         true,
+    });
+
+    await persist();
+    renderSites();
+
+    // Reset form
+    urlInput.value   = '';
+    intervalIn.value = '10';
+    matchSel.value   = 'startsWith';
+    urlInput.focus();
   };
 
-  const updated = [...sites, newSite];
-  await saveSites(updated);
-  renderSites(updated);
+  addBtn.addEventListener('click', doAdd);
+  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+}
 
-  // Reset form
-  urlInput.value = '';
-  intervalInput.value = '10';
-});
+// ─── Init ─────────────────────────────────────────────────────────────────────
 
-// Allow submitting with Enter in the URL field
-document.getElementById('urlInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('addBtn').click();
-});
-
-// Initial render
-getSites().then(renderSites);
+(async () => {
+  await loadStorage();
+  initMasterSwitch();
+  initActiveHours();
+  initAddForm();
+  renderSites();
+})();
